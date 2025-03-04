@@ -511,7 +511,7 @@
         fstype: '{{ ephemeral_fstype }}'
         opts: rw
         state: ephemeral
-      register: ephemeral_mount_info
+      register: ephemeral_mount_result
 
     - name: Put something in the directory so we can do additional checks later on
       ansible.builtin.copy:
@@ -536,7 +536,7 @@
       ansible.builtin.assert:
         that:
           - mount_count.stdout|int == 1
-          - ephemeral_mount_info['changed']
+          - ephemeral_mount_result['changed']
           - fstab_stat_before_mount['stat']['checksum'] == fstab_stat_after_mount['stat']['checksum']
 
     - name: Get first mount record
@@ -553,7 +553,7 @@
         fstype: '{{ ephemeral_fstype }}'
         opts: ro
         state: ephemeral
-      register: ephemeral_mount_info
+      register: ephemeral_mount_result
 
     - name: Get second mount record (should be different than the first)
       ansible.builtin.shell:
@@ -575,7 +575,7 @@
         that:
           - mount_count.stdout|int == 1
           - ephemeral_mount_record_1.stdout != ephemeral_mount_record_2.stdout
-          - ephemeral_mount_info['changed']
+          - ephemeral_mount_result['changed']
           - fstab_stat_before_mount['stat']['checksum'] == fstab_stat_after_mount['stat']['checksum']
 
     - name: Try to mount file B on file A mountpoint (should fail)
