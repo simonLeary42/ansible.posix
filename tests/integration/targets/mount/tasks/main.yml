@@ -620,14 +620,14 @@
       ansible.builtin.shell:
         cmd: grep -c '/tmp/myfs' <(mount -v)
         executable: "{{ shell_executable }}"
-      register: check_mountinfo
+      register: mount_count
       failed_when: false
       changed_when: false
 
     - name: Assert the mount occured and the fstab is unchanged
       ansible.builtin.assert:
         that:
-          - check_mountinfo.stdout|int == 1
+          - mount_count.stdout|int == 1
           - ephemeral_mount_info['changed']
           - fstab_stat_before_mount['stat']['checksum'] == fstab_stat_after_mount['stat']['checksum']
 
@@ -659,13 +659,13 @@
         cmd: grep -c '/tmp/myfs' <(mount -v)
         executable: "{{ shell_executable }}"
       failed_when: false
-      register: check_mountinfo
+      register: mount_count
       changed_when: false
 
     - name: Assert the FS A is still mounted, the options changed and the fstab unchanged
       ansible.builtin.assert:
         that:
-          - check_mountinfo.stdout|int == 1
+          - mount_count.stdout|int == 1
           - ephemeral_mount_record_1.stdout != ephemeral_mount_record_2.stdout
           - ephemeral_mount_info['changed']
           - fstab_stat_before_mount['stat']['checksum'] == fstab_stat_after_mount['stat']['checksum']
@@ -691,7 +691,7 @@
         cmd: grep -c '/tmp/myfs' <(mount -v)
         executable: "{{ shell_executable }}"
       failed_when: false
-      register: check_mountinfo
+      register: mount_count
       changed_when: false
 
     - name: Try to stat our test file
@@ -702,7 +702,7 @@
     - name: Assert that mounting FS B over FS A failed
       ansible.builtin.assert:
         that:
-          - check_mountinfo.stdout|int == 1
+          - mount_count.stdout|int == 1
           - ephemeral_mount_record_2.stdout == ephemeral_mount_record_3.stdout
           - test_file_stat['stat']['exists']
           - ephemeral_mount_b_info is failed
@@ -721,7 +721,7 @@
       ansible.builtin.shell:
         cmd: grep -c '/tmp/myfs' <(mount -v)
         executable: "{{ shell_executable }}"
-      register: check_mountinfo
+      register: mount_count
       failed_when: false
       changed_when: false
 
@@ -733,7 +733,7 @@
     - name: Assert that fstab is unchanged after unmounting an ephemeral mount with state = unmounted
       ansible.builtin.assert:
         that:
-          - check_mountinfo.stdout|int == 0
+          - mount_count.stdout|int == 0
           - not test_file_stat['stat']['exists']
           - fstab_stat_before_mount['stat']['checksum'] == fstab_stat_after_unmount['stat']['checksum']
 
