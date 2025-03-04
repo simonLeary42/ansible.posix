@@ -204,6 +204,7 @@
           - ephemeral_mount_result['changed']
           - fstab_stat_before_mount['stat']['checksum'] == fstab_stat_after_mount['stat']['checksum']
 
+    # conflicting mount
     - name: Try to mount file B on file A mountpoint (should fail)
       ansible.posix.mount:
         path: /tmp/myfs
