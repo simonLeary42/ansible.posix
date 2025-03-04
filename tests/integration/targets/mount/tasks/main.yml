@@ -51,9 +51,12 @@
 - name: Assert the bind mount was successful
   ansible.builtin.assert:
     that:
-      - (ansible_system == 'Linux' and bind_result_linux['changed']) or (ansible_system == 'FreeBSD' and bind_result_freebsd['changed'])
+      - linux_and_changed or freebsd_and_changed
       - dest_stat['stat']['exists']
       - orig_info['checksum'] == dest_stat['stat']['checksum']
+  vars:
+    linux_and_changed: "{{ ansible_system == 'Linux' and bind_result_linux_dry_run['changed'] }}"
+    freebsd_and_changed: "{{ ansible_system == 'FreeBSD' and bind_result_freebsd['changed'] }}"
   when: ansible_system in ('FreeBSD', 'Linux')
 
 # bind mount 2
@@ -79,7 +82,10 @@
 - name: Make sure we didn't mount a second time
   ansible.builtin.assert:
     that:
-      - (ansible_system == 'Linux' and not bind_result_linux['changed']) or (ansible_system == 'FreeBSD' and not bind_result_freebsd['changed'])
+      - linux_and_unchanged or freebsd_and_unchanged
+  vars:
+    linux_and_unchanged: "{{ ansible_system == 'Linux' and not bind_result_linux_dry_run['changed'] }}"
+    freebsd_and_unchanged: "{{ ansible_system == 'FreeBSD' and not bind_result_freebsd['changed'] }}"
   when: ansible_system in ('FreeBSD', 'Linux')
 
 # remount
@@ -113,8 +119,11 @@
 - name: Make sure the filesystem now has the new opts
   ansible.builtin.assert:
     that:
-      - (ansible_system == 'Linux' and bind_result_linux['changed']) or (ansible_system == 'FreeBSD' and bind_result_freebsd['changed'])
+      - linux_and_changed or freebsd_and_changed
       - mount_count.stdout == "1"
+  vars:
+    linux_and_changed: "{{ ansible_system == 'Linux' and bind_result_linux_dry_run['changed'] }}"
+    freebsd_and_changed: "{{ ansible_system == 'FreeBSD' and bind_result_freebsd['changed'] }}"
   when: ansible_system in ('FreeBSD', 'Linux')
 
 # unmount
