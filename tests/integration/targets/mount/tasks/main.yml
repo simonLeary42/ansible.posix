@@ -1,5 +1,13 @@
-- name: setup
-  import_tasks: setup.yml
+- name: Install dependencies (Linux)
+  ansible.builtin.package:
+    name: e2fsprogs
+    state: present
+  when: ansible_system == 'Linux'
+
+- name: Install dependencies (FreeBSD)
+  ansible.builtin.package:
+    name: bash
+    state: present
 
 - name: Create the mount point
   ansible.builtin.file:
