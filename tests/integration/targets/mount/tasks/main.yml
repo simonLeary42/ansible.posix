@@ -190,17 +190,16 @@
 
 - name: Get mount options
   ansible.builtin.shell:
-    cmd: set -o pipefail && mount | grep mount_dest | grep -E -w '(ro|read-only)' | wc -l
+    cmd: set -o pipefail && mount | grep mount_dest | grep -c -E -w '(ro|read-only)'
     executable: "{{ shell_executable }}"
   changed_when: false
-  register: remount_options
+  register: mount_count
 
 - name: Make sure the filesystem now has the new opts
   ansible.builtin.assert:
     that:
       - (ansible_system == 'Linux' and bind_result_linux['changed']) or (ansible_system == 'FreeBSD' and bind_result_freebsd['changed'])
-      - '''1'' in remount_options.stdout'
-      - 1 == remount_options.stdout_lines | length
+      - mount_count.stdout == "1"
   when: ansible_system in ('FreeBSD', 'Linux')
 
 - name: Unmount the bind mount
@@ -398,7 +397,7 @@
 
     - name: Get remounted options (Linux only)
       ansible.builtin.shell:
-        cmd: set -o pipefail && mount | grep myfs | grep -E -w 'noexec' | wc -l
+        cmd: set -o pipefail && mount | grep myfs | grep -c -E -w 'noexec'
         executable: "{{ shell_executable }}"
       changed_when: false
       register: remounted_options
@@ -406,8 +405,7 @@
     - name: Make sure the filesystem now has the new opts after using remounted (Linux only)
       ansible.builtin.assert:
         that:
-          - "'1' in remounted_options.stdout"
-          - "1 == remounted_options.stdout_lines | length"
+          - mount_count.stdout == "1"
 
     - name: Mount the FS again to test backup
       ansible.posix.mount:
