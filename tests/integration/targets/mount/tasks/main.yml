@@ -581,8 +581,6 @@
       changed_when: true
       when: ephemeral_format_fs_cmd is defined
 
-  ##### TESTS
-
     - name: Create fstab if it does not exist
       ansible.builtin.file:
         path: "{{ ephemeral_fstab }}"
