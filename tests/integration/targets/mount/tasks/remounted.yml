@@ -1,6 +1,7 @@
 - name: Block to test remounted option
   when: ansible_system in ('Linux')
   block:
+    # setup
     - name: Create empty file
       community.general.filesize:
         path: /tmp/myfs.img
@@ -30,9 +31,29 @@
       ansible.builtin.pause:
         seconds: 2
 
-    - name: Test if the FS is remounted
+    # remount check mode
+    - name: Remount (check mode)
       ansible.posix.mount:
         path: /tmp/myfs
+        state: remounted
+
+    - name: Get again the last write time
+      ansible.builtin.shell:
+        cmd: >-
+          set -o pipefail && dumpe2fs /tmp/myfs.img 2>/dev/null | grep -i "last write time:" |cut -d: -f2-
+        executable: "{{ shell_executable }}"
+      changed_when: false
+      register: last_write_time_check
+
+    - name: Fail if they are different
+      ansible.builtin.fail:
+        msg: Filesytem was remounted, testing of the module failed!
+      when: last_write_time.stdout != last_write_time_check.stdout
+
+    # remount
+    - name: Test if the FS is remounted
+      ansible.posix.mount:
+        path: /tmp/myfsp
         state: remounted
 
     - name: Get again the last write time
@@ -48,6 +69,7 @@
         msg: Filesytem was not remounted, testing of the module failed!
       when: last_write is defined and last_write_time2 is defined and last_write_time.stdout == last_write_time2.stdout
 
+    # remount different options check mode
     - name: Remount filesystem with different opts using remounted option (Linux only)
       ansible.posix.mount:
         path: /tmp/myfs
@@ -66,6 +88,26 @@
         that:
           - mount_count.stdout == "1"
 
+    # remount different options
+    - name: Remount filesystem with different opts using remounted option (Linux only)
+      ansible.posix.mount:
+        path: /tmp/myfs
+        state: remounted
+        opts: rw,noexec
+
+    - name: Get remounted options (Linux only)
+      ansible.builtin.shell:
+        cmd: set -o pipefail && mount | grep myfs | grep -c -E -w 'noexec'
+        executable: "{{ shell_executable }}"
+      changed_when: false
+      register: remounted_options
+
+    - name: Make sure the filesystem now has the new opts after using remounted (Linux only)
+      ansible.builtin.assert:
+        that:
+          - mount_count.stdout == "1"
+
+    # backup
     - name: Mount the FS again to test backup
       ansible.posix.mount:
         path: /tmp/myfs
