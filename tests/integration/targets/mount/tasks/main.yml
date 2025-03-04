@@ -22,6 +22,7 @@
     mode: '0644'
   register: orig_info
 
+# bind mount
 - name: Bind mount a filesystem (Linux)
   ansible.posix.mount:
     src: '{{ output_dir }}/mount_source'
@@ -55,6 +56,7 @@
       - orig_info['checksum'] == dest_stat['stat']['checksum']
   when: ansible_system in ('FreeBSD', 'Linux')
 
+# bind mount 2
 - name: Bind mount a filesystem (Linux)
   ansible.posix.mount:
     src: '{{ output_dir }}/mount_source'
@@ -80,6 +82,7 @@
       - (ansible_system == 'Linux' and not bind_result_linux['changed']) or (ansible_system == 'FreeBSD' and not bind_result_freebsd['changed'])
   when: ansible_system in ('FreeBSD', 'Linux')
 
+# remount
 - name: Remount filesystem with different opts (Linux)
   ansible.posix.mount:
     src: '{{ output_dir }}/mount_source'
@@ -114,6 +117,7 @@
       - mount_count.stdout == "1"
   when: ansible_system in ('FreeBSD', 'Linux')
 
+# unmount
 - name: Unmount the bind mount
   ansible.posix.mount:
     name: '{{ output_dir }}/mount_dest'
