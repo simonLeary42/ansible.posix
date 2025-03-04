@@ -1,7 +1,6 @@
 # SETUP
 - name: Register facts on Linux
   ansible.builtin.set_fact:
-    shell_executable: /bin/bash
     ephemeral_device_a: /tmp/myfs_A.img
     ephemeral_device_b: /tmp/myfs_B.img
     ephemeral_fstype: ext3
@@ -10,7 +9,6 @@
 
 - name: Register facts on Solaris/SunOS
   ansible.builtin.set_fact:
-    shell_executable: /usr/bin/bash
     ephemeral_device_a: /dev/lofi/1
     ephemeral_device_b: /dev/lofi/2
     ephemeral_create_loop_dev_cmd: >-
@@ -25,7 +23,6 @@
 
 - name: Register facts on FreeBSD
   ansible.builtin.set_fact:
-    shell_executable: /usr/local/bin/bash
     ephemeral_device_a: /dev/md1
     ephemeral_device_b: /dev/md2
     ephemeral_create_loop_dev_cmd: >-
@@ -40,7 +37,6 @@
 
 - name: Register facts on NetBSD
   ansible.builtin.set_fact:
-    shell_executable: /usr/local/bin/bash
     ephemeral_device_a: /dev/vnd1
     ephemeral_device_b: /dev/vnd2
     ephemeral_create_loop_dev_cmd: >-
@@ -62,7 +58,6 @@
 
 - name: Register facts on OpenBSD
   ansible.builtin.set_fact:
-    shell_executable: /usr/local/bin/bash
     ephemeral_device_a: /dev/vnd1c
     ephemeral_device_b: /dev/vnd2c
     ephemeral_create_loop_dev_cmd: >-

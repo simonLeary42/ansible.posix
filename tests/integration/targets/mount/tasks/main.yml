@@ -9,6 +9,21 @@
     name: bash
     state: present
 
+- name: set facts
+  ansible.builtin.set_fact: "{{ item.value }}"
+  when: item.key == ansible_system
+  with_dict:
+    Linux:
+      shell_executable: /bin/bash
+    SunOS:
+      shell_executable: /usr/bin/bash
+    FreeBSD:
+      shell_executable: /usr/local/bin/bash
+    NetBSD:
+      shell_executable: /usr/local/bin/bash
+    OpenBSD:
+      shell_executable: /usr/local/bin/bash
+
 - name: swap
   import_tasks: swap.yml
   when: ansible_system == 'Linux'
