@@ -1,6 +1,7 @@
 - name: Block to test remounted option
   when: ansible_system in ('Linux')
   block:
+    # mount swap1
     - name: Create fstab record for the first swap file
       ansible.posix.mount:
         name: none
@@ -25,6 +26,7 @@
           - swap1_created['changed']
           - not swap1_created_again['changed']
 
+    # mount swap2
     - name: Create fstab record for the second swap file
       ansible.posix.mount:
         name: none
@@ -49,6 +51,7 @@
           - swap2_created['changed']
           - not swap2_created_again['changed']
 
+    # remove swap1
     - name: Remove the fstab record for the first swap file
       ansible.posix.mount:
         name: none
@@ -69,6 +72,7 @@
           - swap1_removed['changed']
           - not swap1_removed_again['changed']
 
+    # remove swap2
     - name: Remove the fstab record for the second swap file
       ansible.posix.mount:
         name: none
@@ -89,6 +93,7 @@
           - swap2_removed['changed']
           - not swap2_removed_again['changed']
 
+    # update existing fstab entry
     - name: Create fstab record with missing last two fields
       ansible.builtin.copy:
         dest: /etc/fstab
@@ -118,6 +123,7 @@
           - ''' 0 0'' in optional_fields_content.stdout'
           - 1 == optional_fields_content.stdout_lines | length
 
+    # state remounted
     - name: Create empty file
       community.general.filesize:
         path: /tmp/myfs.img
@@ -183,6 +189,7 @@
         that:
           - mount_count.stdout == "1"
 
+    # backup
     - name: Mount the FS again to test backup
       ansible.posix.mount:
         path: /tmp/myfs
