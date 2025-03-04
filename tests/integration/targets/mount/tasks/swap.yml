@@ -1,3 +1,28 @@
+# mount swap check mode
+- name: Stat /etc/fstab
+  stat:
+    path: /etc/fstab
+  register: stat_fstab_before
+
+- name: Create fstab record for the first swap file (check mode)
+  ansible.posix.mount:
+    name: none
+    src: /tmp/swap1
+    opts: sw
+    fstype: swap
+    state: present
+  check_mode: true
+
+- name: Stat /etc/fstab
+  stat:
+    path: /etc/fstab
+  register: stat_fstab_before
+
+- name: Assert that fstab checksum did not change
+  ansible.builtin.assert:
+    that:
+      - stat_fstab_before.checksum == stat_fstab_after.checksum
+
 # mount swap1
 - name: Create fstab record for the first swap file
   ansible.posix.mount:
@@ -47,6 +72,29 @@
     that:
       - swap2_created['changed']
       - not swap2_created_again['changed']
+
+# remove swap check mode
+- name: Stat /etc/fstab
+  stat:
+    path: /etc/fstab
+  register: stat_fstab_before
+
+- name: Remove the fstab record for the first swap file (check mode)
+  ansible.posix.mount:
+    name: none
+    src: /tmp/swap1
+    state: absent
+  check_mode: true
+
+- name: Stat /etc/fstab
+  stat:
+    path: /etc/fstab
+  register: stat_fstab_before
+
+- name: Assert that fstab checksum did not change
+  ansible.builtin.assert:
+    that:
+      - stat_fstab_before.checksum == stat_fstab_after.checksum
 
 # remove swap1
 - name: Remove the fstab record for the first swap file

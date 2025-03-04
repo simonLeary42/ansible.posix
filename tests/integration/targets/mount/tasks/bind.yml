@@ -20,6 +20,44 @@
     mode: '0644'
   register: orig_info
 
+# bind mount check mode
+- name: Bind mount a filesystem (Linux) (check mode)
+  ansible.posix.mount:
+    src: '{{ output_dir }}/mount_source'
+    name: '{{ output_dir }}/mount_dest'
+    state: mounted
+    fstype: None
+    opts: bind
+  when: ansible_system == 'Linux'
+  register: bind_result_linux_dry_run
+  check_mode: true
+
+- name: Bind mount a filesystem (FreeBSD) (check mode)
+  ansible.posix.mount:
+    src: '{{ output_dir }}/mount_source'
+    name: '{{ output_dir }}/mount_dest'
+    state: mounted
+    fstype: nullfs
+  when: ansible_system == 'FreeBSD'
+  register: bind_result_freebsd_dry_run
+  check_mode: true
+
+- name: Stat bind mount dest
+  ansible.builtin.stat:
+    path: '{{ output_dir }}/mount_dest'
+  when: ansible_system in ('FreeBSD', 'Linux')
+  register: dest_stat_dry_run
+
+- name: Assert the bind mount did not take place
+  ansible.builtin.assert:
+    that:
+      - linux_and_changed or freebsd_and_changed
+      - not dest_stat['stat']['exists']
+  vars:
+    linux_and_changed: "{{ ansible_system == 'Linux' and bind_result_linux_dry_run['changed'] }}"
+    freebsd_and_changed: "{{ ansible_system == 'FreeBSD' and bind_result_freebsd['changed'] }}"
+  when: ansible_system in ('FreeBSD', 'Linux')
+
 # bind mount
 - name: Bind mount a filesystem (Linux)
   ansible.posix.mount:
@@ -86,6 +124,46 @@
     freebsd_and_unchanged: "{{ ansible_system == 'FreeBSD' and not bind_result_freebsd['changed'] }}"
   when: ansible_system in ('FreeBSD', 'Linux')
 
+# remount check mode
+- name: Remount filesystem with different opts (Linux) (check mode)
+  ansible.posix.mount:
+    src: '{{ output_dir }}/mount_source'
+    name: '{{ output_dir }}/mount_dest'
+    state: mounted
+    fstype: None
+    opts: bind,ro
+  when: ansible_system == 'Linux'
+  register: bind_result_linux
+  check_mode: true
+
+- name: Remount filesystem with different opts (FreeBSD) (check mode)
+  ansible.posix.mount:
+    src: '{{ output_dir }}/mount_source'
+    name: '{{ output_dir }}/mount_dest'
+    state: mounted
+    fstype: nullfs
+    opts: ro
+  when: ansible_system == 'FreeBSD'
+  register: bind_result_freebsd
+  check_mode: true
+
+- name: Get mount options
+  ansible.builtin.shell:
+    cmd: set -o pipefail && mount | grep mount_dest | grep -c -E -w '(ro|read-only)'
+    executable: "{{ shell_executable }}"
+  changed_when: false
+  register: new_options_count
+
+- name: Make sure the filesystem does not have the new opts
+  ansible.builtin.assert:
+    that:
+      - linux_and_changed or freebsd_and_changed
+      - new_options_count.stdout == "0"
+  vars:
+    linux_and_changed: "{{ ansible_system == 'Linux' and bind_result_linux_dry_run['changed'] }}"
+    freebsd_and_changed: "{{ ansible_system == 'FreeBSD' and bind_result_freebsd['changed'] }}"
+  when: ansible_system in ('FreeBSD', 'Linux')
+
 # remount
 - name: Remount filesystem with different opts (Linux)
   ansible.posix.mount:
@@ -122,6 +200,28 @@
   vars:
     linux_and_changed: "{{ ansible_system == 'Linux' and bind_result_linux_dry_run['changed'] }}"
     freebsd_and_changed: "{{ ansible_system == 'FreeBSD' and bind_result_freebsd['changed'] }}"
+  when: ansible_system in ('FreeBSD', 'Linux')
+
+# unmount check mode
+- name: Unmount the bind mount (check mode)
+  ansible.posix.mount:
+    name: '{{ output_dir }}/mount_dest'
+    state: absent
+  when: ansible_system in ('Linux', 'FreeBSD')
+  register: unmount_result
+  check_mode: true
+
+- name: Make sure the file still exists in dest
+  ansible.builtin.stat:
+    path: '{{ output_dir }}/mount_dest/test_file'
+  when: ansible_system in ('FreeBSD', 'Linux')
+  register: dest_stat
+
+- name: Check that we did not unmount
+  ansible.builtin.assert:
+    that:
+      - unmount_result['changed']
+      - dest_stat['stat']['exists']
   when: ansible_system in ('FreeBSD', 'Linux')
 
 # unmount
