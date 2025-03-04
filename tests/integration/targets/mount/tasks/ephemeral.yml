@@ -164,7 +164,7 @@
           - ephemeral_mount_result['changed']
           - fstab_stat_before_mount['stat']['checksum'] == fstab_stat_after_mount['stat']['checksum']
 
-    # duplicate mount
+    # remount different options
     - name: Get first mount record
       ansible.builtin.shell:
         cmd: grep '/tmp/myfs' <(mount -v)
