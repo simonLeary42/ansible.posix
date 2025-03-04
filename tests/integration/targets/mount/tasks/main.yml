@@ -11,6 +11,7 @@
 
 - name: swap
   import_tasks: swap.yml
+  when: ansible_system == 'Linux'
 
 - name: bind mount
   import_tasks: bind.yml
@@ -20,6 +21,7 @@
 
 - name: boot option for linux
   import_tasks: boot-option-linux.yml
+  when: ansible_system == 'Linux'
 
 - name: newline at EOF
   import_tasks: newline-eof.yml
@@ -29,6 +31,8 @@
 
 - name: opts_no_log
   import_tasks: opts_no_log.yml
+  when: ansible_system == 'Linux'
 
 - name: fixup
   import_tasks: fixup.yml
+  when: ansible_system == 'Linux'
