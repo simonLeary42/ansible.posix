@@ -114,13 +114,13 @@
     cmd: set -o pipefail && mount | grep mount_dest | grep -c -E -w '(ro|read-only)'
     executable: "{{ shell_executable }}"
   changed_when: false
-  register: mount_count
+  register: new_options_count
 
 - name: Make sure the filesystem now has the new opts
   ansible.builtin.assert:
     that:
       - linux_and_changed or freebsd_and_changed
-      - mount_count.stdout == "1"
+      - new_options_count.stdout == "1"
   vars:
     linux_and_changed: "{{ ansible_system == 'Linux' and bind_result_linux_dry_run['changed'] }}"
     freebsd_and_changed: "{{ ansible_system == 'FreeBSD' and bind_result_freebsd['changed'] }}"
