@@ -86,7 +86,7 @@
     - name: Make sure the filesystem now has the new opts after using remounted (Linux only)
       ansible.builtin.assert:
         that:
-          - mount_count.stdout == "1"
+          - mount_count.stdout | int == 1
 
     # remount different options
     - name: Remount filesystem with different opts using remounted option (Linux only)
@@ -105,7 +105,7 @@
     - name: Make sure the filesystem now has the new opts after using remounted (Linux only)
       ansible.builtin.assert:
         that:
-          - mount_count.stdout == "1"
+          - mount_count.stdout | int == 1
 
     # backup
     - name: Mount the FS again to test backup
