@@ -18,12 +18,12 @@
     state: mounted
     boot: false
     opts: rw,user,async
-  register: mount_info
+  register: mount_result
 
 - name: Assert the mount without noauto was successful
   ansible.builtin.assert:
     that:
-      - mount_info['opts'] == 'rw,user,async,noauto'
+      - mount_result['opts'] == 'rw,user,async,noauto'
 
 - name: Unmount FS
   ansible.posix.mount:
@@ -38,12 +38,12 @@
     fstype: ext3
     state: mounted
     boot: false
-  register: mount_info
+  register: mount_result
 
 - name: Assert the mount without noauto was successful
   ansible.builtin.assert:
     that:
-      - "'noauto' in mount_info['opts'].split(',')"
+      - "'noauto' in mount_result['opts'].split(',')"
 
 - name: Unmount FS
   ansible.posix.mount:
