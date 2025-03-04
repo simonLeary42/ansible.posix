@@ -1,3 +1,4 @@
+# setup
 - name: Create empty file
   community.general.filesize:
     path: /tmp/myfs.img
@@ -8,6 +9,7 @@
     fstype: ext3
     dev: /tmp/myfs.img
 
+# noauto
 - name: Mount the FS with noauto option
   ansible.posix.mount:
     path: /tmp/myfs
@@ -28,6 +30,7 @@
     path: /tmp/myfs
     state: absent
 
+# noauto + defaults
 - name: Mount the FS with noauto option and defaults
   ansible.posix.mount:
     path: /tmp/myfs
