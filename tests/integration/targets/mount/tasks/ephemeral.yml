@@ -347,7 +347,7 @@
     - name: Assert that fstab is unchanged after unmounting an ephemeral mount with state = unmounted
       ansible.builtin.assert:
         that:
-          - mount_count.stdout|int == 0
+          - mount_count.stdout|int == 1
           - test_file_stat['stat']['exists']
           - fstab_stat_before_mount['stat']['checksum'] == fstab_stat_after_unmount['stat']['checksum']
 

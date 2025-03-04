@@ -16,12 +16,12 @@
 - name: Stat /etc/fstab
   stat:
     path: /etc/fstab
-  register: stat_fstab_before
+  register: stat_fstab_after
 
 - name: Assert that fstab checksum did not change
   ansible.builtin.assert:
     that:
-      - stat_fstab_before.checksum == stat_fstab_after.checksum
+      - stat_fstab_before.stat.checksum == stat_fstab_after.stat.checksum
 
 # mount swap1
 - name: Create fstab record for the first swap file
@@ -89,12 +89,12 @@
 - name: Stat /etc/fstab
   stat:
     path: /etc/fstab
-  register: stat_fstab_before
+  register: stat_fstab_after
 
 - name: Assert that fstab checksum did not change
   ansible.builtin.assert:
     that:
-      - stat_fstab_before.checksum == stat_fstab_after.checksum
+      - stat_fstab_before.stat.checksum == stat_fstab_after.stat.checksum
 
 # remove swap1
 - name: Remove the fstab record for the first swap file

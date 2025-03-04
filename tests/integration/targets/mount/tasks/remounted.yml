@@ -53,7 +53,7 @@
     # remount
     - name: Test if the FS is remounted
       ansible.posix.mount:
-        path: /tmp/myfsp
+        path: /tmp/myfs
         state: remounted
 
     - name: Get again the last write time
@@ -81,12 +81,12 @@
         cmd: set -o pipefail && mount | grep myfs | grep -c -E -w 'noexec'
         executable: "{{ shell_executable }}"
       changed_when: false
-      register: remounted_options
+      register: new_options_count
 
     - name: Make sure the filesystem now has the new opts after using remounted (Linux only)
       ansible.builtin.assert:
         that:
-          - mount_count.stdout | int == 1
+          - new_options_count.stdout | int == 1
 
     # remount different options
     - name: Remount filesystem with different opts using remounted option (Linux only)
@@ -100,12 +100,12 @@
         cmd: set -o pipefail && mount | grep myfs | grep -c -E -w 'noexec'
         executable: "{{ shell_executable }}"
       changed_when: false
-      register: remounted_options
+      register: new_options_count
 
     - name: Make sure the filesystem now has the new opts after using remounted (Linux only)
       ansible.builtin.assert:
         that:
-          - mount_count.stdout | int == 1
+          - new_options_count.stdout | int == 1
 
     # backup
     - name: Mount the FS again to test backup

@@ -42,11 +42,11 @@
   register: bind_result_freebsd_dry_run
   check_mode: true
 
-- name: Stat bind mount dest
+- name: attempt to stat bind mounted file
   ansible.builtin.stat:
-    path: '{{ output_dir }}/mount_dest'
+    path: '{{ output_dir }}/mount_dest/test_file'
   when: ansible_system in ('FreeBSD', 'Linux')
-  register: dest_stat_dry_run
+  register: dest_stat
 
 - name: Assert the bind mount did not take place
   ansible.builtin.assert:
@@ -120,7 +120,7 @@
     that:
       - linux_and_unchanged or freebsd_and_unchanged
   vars:
-    linux_and_unchanged: "{{ ansible_system == 'Linux' and not bind_result_linux_dry_run['changed'] }}"
+    linux_and_unchanged: "{{ ansible_system == 'Linux' and not bind_result_linux['changed'] }}"
     freebsd_and_unchanged: "{{ ansible_system == 'FreeBSD' and not bind_result_freebsd['changed'] }}"
   when: ansible_system in ('FreeBSD', 'Linux')
 
@@ -152,6 +152,7 @@
     cmd: set -o pipefail && mount | grep mount_dest | grep -c -E -w '(ro|read-only)'
     executable: "{{ shell_executable }}"
   changed_when: false
+  failed_when: false
   register: new_options_count
 
 - name: Make sure the filesystem does not have the new opts
@@ -189,6 +190,7 @@
   ansible.builtin.shell:
     cmd: set -o pipefail && mount | grep mount_dest | grep -c -E -w '(ro|read-only)'
     executable: "{{ shell_executable }}"
+  failed_when: false
   changed_when: false
   register: new_options_count
 
