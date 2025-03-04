@@ -1,0 +1,38 @@
+# fix incomplete entry already present in fstab
+- name: Create fstab record with missing last two fields
+  ansible.builtin.copy:
+    dest: /etc/fstab
+    content: '//nas/photo /home/jik/pictures cifs defaults,credentials=/etc/security/nas.creds,uid=jik,gid=users,forceuid,forcegid,noserverino,_netdev
+
+      '
+    mode: "0644"
+
+- name: Try to change the fstab record with the missing last two fields (check mode)
+  ansible.posix.mount:
+    src: //nas/photo
+    path: /home/jik/pictures
+    fstype: cifs
+    opts: defaults,credentials=/etc/security/nas.creds,uid=jik,gid=users,forceuid,forcegid,noserverino,_netdev,x-systemd.mount-timeout=0
+    state: present
+  check_mode: true
+
+- name: Try to change the fstab record with the missing last two fields
+  ansible.posix.mount:
+    src: //nas/photo
+    path: /home/jik/pictures
+    fstype: cifs
+    opts: defaults,credentials=/etc/security/nas.creds,uid=jik,gid=users,forceuid,forcegid,noserverino,_netdev,x-systemd.mount-timeout=0
+    state: present
+  register: optional_fields_update
+
+- name: Get the content of the fstab file
+  ansible.builtin.command: cat /etc/fstab
+  changed_when: false
+  register: optional_fields_content
+
+- name: Check if the line containing the missing last two fields was changed
+  ansible.builtin.assert:
+    that:
+      - optional_fields_update['changed']
+      - ''' 0 0'' in optional_fields_content.stdout'
+      - 1 == optional_fields_content.stdout_lines | length
