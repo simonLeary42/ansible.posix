@@ -48,7 +48,7 @@
         state: touch
         mode: '0644'
 
-    # ephemeral mount
+    # normal ephemeral mount
     - name: Get checksum of /etc/fstab before
       ansible.builtin.stat:
         path: '{{ ephemeral_fstab }}'
