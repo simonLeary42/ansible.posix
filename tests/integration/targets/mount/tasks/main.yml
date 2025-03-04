@@ -9,28 +9,6 @@
     name: bash
     state: present
 
-- name: Create the mount point
-  ansible.builtin.file:
-    state: directory
-    path: '{{ output_dir }}/mount_dest'
-    mode: '0755'
-
-- name: Create a directory to bind mount
-  ansible.builtin.file:
-    state: directory
-    path: '{{ output_dir }}/mount_source'
-    mode: '0755'
-
-- name: Put something in the directory so we see that it worked
-  ansible.builtin.copy:
-    content: 'Testing
-
-      '
-    dest: '{{ output_dir }}/mount_source/test_file'
-    mode: '0644'
-  register: orig_info
-
-
 - name: swap
   import_tasks: swap.yml
 
