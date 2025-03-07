@@ -222,6 +222,8 @@ EXAMPLES = r'''
 import errno
 import os
 import platform
+import tempfile
+import shutil
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.ansible.posix.plugins.module_utils.mount import ismount
@@ -372,7 +374,7 @@ def _set_mount_save_old(module, args):
         to_write.append(new_line % escaped_args)
         changed = True
 
-    if changed and not module.check_mode:
+    if changed:
         args['backup_file'] = write_fstab(module, to_write, args['fstab'])
 
     return (args['name'], old_lines, changed)
@@ -440,7 +442,7 @@ def unset_mount(module, args):
         # If we got here we found a match - continue and mark changed
         changed = True
 
-    if changed and not module.check_mode:
+    if changed:
         write_fstab(module, to_write, args['fstab'])
 
     return (args['name'], changed)
@@ -827,6 +829,11 @@ def main():
 
     args['backup_file'] = ""
     linux_mounts = []
+    if module.check_mode:
+        _, tmp = tempfile.mkstemp()
+        shutil.copyfile(args["fstab"], tmp)
+        args["fstab"] = tmp
+
 
     # Cache all mounts here in order we have consistent results if we need to
     # call is_bind_mounted() multiple times
@@ -882,30 +889,51 @@ def main():
     state = module.params['state']
     name = module.params['path']
     changed = False
+    diffs = []
+
+    if state != "ephemeral":
+        with open(args["fstab"], "r", encoding="utf8") as fstab:
+            fstab_contents_before = fstab.read()
 
     if state == 'absent_from_fstab':
         name, changed = unset_mount(module, args)
     elif state == 'absent':
         name, changed = unset_mount(module, args)
 
-        if changed and not module.check_mode:
+        if changed:
             if ismount(name) or is_bind_mounted(module, linux_mounts, name):
-                res, msg = umount(module, name)
-
-                if res:
-                    module.fail_json(
-                        msg="Error unmounting %s: %s" % (name, msg))
+                diffs.append({
+                    "before": {"state": "mounted"},
+                    "after": {"state": "unmounted"},
+                    "before_header": name
+                })
+                if not module.check_mode:
+                    res, msg = umount(module, name)
+                    if res:
+                        module.fail_json(
+                            msg="Error unmounting %s: %s" % (name, msg))
 
             if os.path.exists(name):
-                try:
-                    os.rmdir(name)
-                except (OSError, IOError) as e:
-                    module.fail_json(msg="Error rmdir %s: %s" % (name, to_native(e)))
+                diffs.append({
+                    "before": {"state": "directory"},
+                    "after": {"state": "absent"},
+                    "before_header": name
+                })
+                if not module.check_mode:
+                    try:
+                        os.rmdir(name)
+                    except (OSError, IOError) as e:
+                        module.fail_json(msg="Error rmdir %s: %s" % (name, to_native(e)))
+
     elif state == 'unmounted':
         if ismount(name) or is_bind_mounted(module, linux_mounts, name):
+            diffs.append({
+                "before": {"state": "mounted"},
+                "after": {"state": "unmounted"},
+                "before_header": name
+            })
             if not module.check_mode:
                 res, msg = umount(module, name)
-
                 if res:
                     module.fail_json(
                         msg="Error unmounting %s: %s" % (name, msg))
@@ -913,7 +941,7 @@ def main():
             changed = True
     elif state == 'mounted' or state == 'ephemeral':
         dirs_created = []
-        if not os.path.exists(name) and not module.check_mode:
+        if not os.path.exists(name):
             try:
                 # Something like mkdir -p but with the possibility to undo.
                 # Based on some copy-paste from the "file" module.
@@ -926,14 +954,15 @@ def main():
 
                     b_curpath = to_bytes(curpath, errors='surrogate_or_strict')
                     if not os.path.exists(b_curpath):
-                        try:
-                            os.mkdir(b_curpath)
-                            dirs_created.append(b_curpath)
-                        except OSError as ex:
-                            # Possibly something else created the dir since the os.path.exists
-                            # check above. As long as it's a dir, we don't need to error out.
-                            if not (ex.errno == errno.EEXIST and os.path.isdir(b_curpath)):
-                                raise
+                        dirs_created.append(b_curpath)
+                        if not module.check_mode:
+                            try:
+                                os.mkdir(b_curpath)
+                            except OSError as ex:
+                                # Possibly something else created the dir since the os.path.exists
+                                # check above. As long as it's a dir, we don't need to error out.
+                                if not (ex.errno == errno.EEXIST and os.path.isdir(b_curpath)):
+                                    raise
 
             except (OSError, IOError) as e:
                 module.fail_json(
@@ -974,7 +1003,11 @@ def main():
         else:
             # If not already mounted, mount it
             changed = True
-
+            diffs.append({
+                "before": {"state": "absent"},
+                "after": {"state": "mounted"},
+                "after_header": name
+            })
             if not module.check_mode:
                 res, msg = mount(module, args)
 
@@ -996,6 +1029,14 @@ def main():
                 pass
 
             module.fail_json(msg="Error mounting %s: %s" % (name, msg))
+
+        # wait until after rmdir so that diff doesn't lie
+        for path in dirs_created:
+            diffs.append({
+                "before": {"state": "absent"},
+                "after": {"state": "directory"},
+                "after_header": path
+            })
     elif state == 'present':
         name, changed = set_mount(module, args)
     elif state == 'remounted':
@@ -1013,7 +1054,18 @@ def main():
     #  to match the type of return value with the module argument.
     if platform.system().lower() == 'sunos':
         args['boot'] = boolean(args['boot'])
-    module.exit_json(changed=changed, **args)
+
+    if state != "ephemeral" and changed:
+        with open(args["fstab"], "r", encoding="utf8") as fstab:
+            diffs.append({
+                "before_header": args["fstab"] if not module.check_mode else "<tempfile>",
+                "after_header": args["fstab"] if not module.check_mode else "<tempfile>",
+                "before": fstab_contents_before,
+                "after": fstab.read()
+            })
+    if module.check_mode:
+        os.remove(args["fstab"]) # tempfile
+    module.exit_json(changed=changed, diff=diffs, **args)
 
 
 if __name__ == '__main__':
